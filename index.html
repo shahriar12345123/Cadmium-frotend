@@ -853,6 +853,7 @@
         try {
           const authData = await apiCall('/api/auth', 'POST');
           state.user = authData.user;
+          state.botUsername = authData.botUsername || 'cadmium390_bot';
           localOxygen = parseFloat(state.user.oxygen || 0);
           updateGlobalUI();
           startMiningTimer();
@@ -1298,7 +1299,7 @@
         document.getElementById('profile-oft-balance').innerText = `${parseFloat(state.user.balance || 0).toFixed(4)} OFT`;
         document.getElementById('profile-referrals').innerText = `${state.referralsCount} Synced Nodes`;
 
-        const botUsername = 'OxygenForestBot';
+        const botUsername = state.botUsername || 'cadmium390_bot';
         const refLink = `https://t.me/${botUsername}?start=${state.user.id}`;
         document.getElementById('invite-link-input').value = refLink;
         document.getElementById('wallet-balance').innerText = `${parseFloat(state.user.balance || 0).toFixed(4)} OFT`;
