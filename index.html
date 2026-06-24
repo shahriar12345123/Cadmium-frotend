@@ -555,43 +555,7 @@
       System Node Active
     </div>
 
-    <!-- Collapsible Cyberpunk Local Dev Testing Panel (Localhost only) -->
-    <div id="local-dev-panel"
-      class="hidden fixed bottom-24 right-5 left-5 bg-slate-950/95 border border-brand-purple/50 rounded-xl p-4 shadow-2xl z-50 space-y-3 font-tech">
-      <div class="flex justify-between items-center border-b border-brand-purple/20 pb-1.5">
-        <span class="text-brand-purple text-xs uppercase tracking-widest font-bold">🖥️ Debug Console</span>
-        <button id="btn-close-dev"
-          class="text-[10px] text-slate-400 uppercase tracking-widest hover:text-white font-bold">Minimize</button>
-      </div>
-      <div class="grid grid-cols-2 gap-2 text-[10px] text-slate-300">
-        <div>
-          <label class="block uppercase tracking-wider text-slate-400 mb-0.5">Mock ID</label>
-          <input type="number" id="dev-user-id" value="999999"
-            class="w-full bg-brand-panel border border-brand-purple/35 rounded p-1 text-white font-mono" />
-        </div>
-        <div>
-          <label class="block uppercase tracking-wider text-slate-400 mb-0.5">Mock Name</label>
-          <input type="text" id="dev-user-name" value="Local Tester"
-            class="w-full bg-brand-panel border border-brand-purple/35 rounded p-1 text-white" />
-        </div>
-      </div>
-      <div class="flex space-x-2">
-        <button id="btn-dev-reload"
-          class="flex-1 py-1.5 bg-brand-purple/20 hover:bg-brand-purple/30 border border-brand-purple text-[10px] uppercase font-bold text-white rounded transition-all">
-          Reload Operator
-        </button>
-        <button id="btn-dev-mine-fast"
-          class="py-1.5 px-3 bg-brand-cyan/20 hover:bg-brand-cyan/30 border border-brand-cyan text-[10px] uppercase font-bold text-white rounded transition-all">
-          Mine Cheat
-        </button>
-      </div>
-    </div>
 
-    <!-- Float button to open developer console -->
-    <button id="btn-open-dev"
-      class="hidden fixed bottom-24 right-5 w-10 h-10 bg-slate-900 border border-brand-purple/50 rounded-full flex items-center justify-center text-lg z-40 shadow-xl hover:bg-brand-purple/20">
-      🖥️
-    </button>
 
   </main>
 
@@ -715,20 +679,6 @@
         { id: 'ref_10000', count: 10000, reward: 25000 }
       ];
 
-      // Local storage mock identification for desktop browser testing
-      function loadMockUserCoordinates() {
-        const id = localStorage.getItem('oxygen_mock_user_id') || '999999';
-        const name = localStorage.getItem('oxygen_mock_user_name') || 'Local Tester';
-        return { id, first_name: name, username: name.toLowerCase().replace(/\s/g, '_') };
-      }
-
-      function getMockUserPayload() {
-        if (!tg || !tg.initData) {
-          return loadMockUserCoordinates();
-        }
-        return null;
-      }
-
       function showToast(message, isError = false) {
         const toast = document.getElementById('toast-notify');
         toast.innerText = message;
@@ -745,9 +695,8 @@
       async function apiCall(endpoint, method = 'GET', body = {}) {
         const initData = tg?.initData || '';
         const referrerId = tg?.initDataUnsafe?.start_param || '';
-        const mockUser = getMockUserPayload();
         const headers = { 'Content-Type': 'application/json' };
-        const reqBody = { ...body, initData, referrerId, mockUser };
+        const reqBody = { ...body, initData, referrerId };
 
         try {
           const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -848,7 +797,24 @@
 
       async function initApp() {
         setupTabs();
-        setupDeveloperPanel();
+
+        if (!tg || !tg.initData) {
+          document.body.innerHTML = `
+            <div class="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-tech select-none">
+              <div class="w-16 h-16 rounded-full bg-brand-pink/10 border border-brand-pink/30 flex items-center justify-center text-2xl mb-6 animate-pulse">
+                ⚠️
+              </div>
+              <h1 class="text-xl font-bold uppercase tracking-widest text-brand-pink mb-2">Access Restrained</h1>
+              <p class="text-xs text-slate-400 max-w-xs leading-relaxed uppercase tracking-wider mb-6">
+                This system requires integration coordinates from the Telegram client interface.
+              </p>
+              <div class="text-[9px] text-brand-purple/70 uppercase tracking-widest border border-brand-purple/20 px-4 py-2 rounded-lg bg-brand-purple/5">
+                Run inside Telegram WebApp environment
+              </div>
+            </div>
+          `;
+          return;
+        }
 
         try {
           const authData = await apiCall('/api/auth', 'POST');
@@ -862,26 +828,21 @@
           const refData = await apiCall('/api/referrals_count', 'POST');
           state.referralsCount = refData.referralsCount || 0;
         } catch (err) {
-          console.error("Initialization failure. App running in offline local mock user fallback.");
-          state.user = {
-            id: 999999,
-            name: 'Local Tester',
-            cadmium: 0.00,
-            oxygen: 0.00,
-            tree_level: 1,
-            multiplier: 1.0,
-            tap_power: 1,
-            passive_rate: 0.0,
-            mining_level: 1,
-            boost_multiplier: 1.0,
-            mining_start_at: null,
-            mining_end_at: null,
-            balance: 0.0
-          };
-          localOxygen = 0;
-          updateGlobalUI();
-          startMiningTimer();
-          startPassiveIncomeTicker();
+          console.error("Initialization failure. Server offline or authorization rejected.");
+          document.body.innerHTML = `
+            <div class="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-tech select-none">
+              <div class="w-16 h-16 rounded-full bg-brand-pink/10 border border-brand-pink/30 flex items-center justify-center text-2xl mb-6">
+                🔌
+              </div>
+              <h1 class="text-xl font-bold uppercase tracking-widest text-brand-pink mb-2">Network Disconnect</h1>
+              <p class="text-xs text-slate-400 max-w-xs leading-relaxed uppercase tracking-wider mb-6">
+                Unable to sync with Cadmium main network. Connection timed out.
+              </p>
+              <button onclick="window.location.reload()" class="py-2 px-5 bg-brand-glow hover:bg-brand-glow/80 text-[10px] uppercase font-tech tracking-wider rounded font-bold transition-all text-white">
+                Retry Connection
+              </button>
+            </div>
+          `;
         }
       }
 
@@ -1335,60 +1296,7 @@
         }
       });
 
-      // Cyberpunk Developer Console setup
-      function setupDeveloperPanel() {
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (!isLocal) return;
 
-        const openBtn = document.getElementById('btn-open-dev');
-        const closeBtn = document.getElementById('btn-close-dev');
-        const devPanel = document.getElementById('local-dev-panel');
-
-        openBtn.classList.remove('hidden');
-
-        openBtn.addEventListener('click', () => {
-          devPanel.classList.remove('hidden');
-          openBtn.classList.add('hidden');
-        });
-
-        closeBtn.addEventListener('click', () => {
-          devPanel.classList.add('hidden');
-          openBtn.classList.remove('hidden');
-        });
-
-        // Initialize dev inputs with saved local storage coordinates
-        const mockCoords = loadMockUserCoordinates();
-        document.getElementById('dev-user-id').value = mockCoords.id;
-        document.getElementById('dev-user-name').value = mockCoords.first_name;
-
-        document.getElementById('btn-dev-reload').addEventListener('click', () => {
-          const mockId = document.getElementById('dev-user-id').value;
-          const mockName = document.getElementById('dev-user-name').value;
-
-          if (!mockId || !mockName) return showToast("Mock credentials invalid.", true);
-
-          localStorage.setItem('oxygen_mock_user_id', mockId);
-          localStorage.setItem('oxygen_mock_user_name', mockName);
-
-          showToast("Reloading operator coordinates...");
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        });
-
-        document.getElementById('btn-dev-mine-fast').addEventListener('click', async () => {
-          if (!state.user) return;
-          // Cheat the mining cycle endpoint by updating the mock mining session end in local DB
-          showToast("Fast forwarding harvesters...");
-          try {
-            // Simply update user object to make mining_end_at = past so claim button is available
-            const mockEnd = new Date(Date.now() - 5000); // 5 seconds ago
-            const updatedUser = { ...state.user, mining_end_at: mockEnd };
-            state.user = updatedUser;
-            startMiningTimer();
-          } catch (e) { }
-        });
-      }
 
       initApp();
     })();
