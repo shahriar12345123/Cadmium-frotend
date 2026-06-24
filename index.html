@@ -563,9 +563,10 @@
   <script type="text/javascript">
     (function () {
       // Determine API dynamically
-      // Backend deployed on Render
-      // Hosting IP ranges: 74.220.52.0/24, 74.220.60.0/24
-      const API_BASE = 'https://cadmium-backend.onrender.com';
+      const BACKEND_URL = 'https://cadmium-backend.onrender.com';
+      const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'cadmium-backend.onrender.com')
+        ? ''
+        : BACKEND_URL;
 
       const tg = window.Telegram?.WebApp;
       if (tg) {
@@ -828,15 +829,18 @@
           const refData = await apiCall('/api/referrals_count', 'POST');
           state.referralsCount = refData.referralsCount || 0;
         } catch (err) {
-          console.error("Initialization failure. Server offline or authorization rejected.");
+          console.error("Initialization failure. Server offline or authorization rejected:", err);
           document.body.innerHTML = `
             <div class="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-tech select-none">
               <div class="w-16 h-16 rounded-full bg-brand-pink/10 border border-brand-pink/30 flex items-center justify-center text-2xl mb-6">
                 🔌
               </div>
               <h1 class="text-xl font-bold uppercase tracking-widest text-brand-pink mb-2">Network Disconnect</h1>
-              <p class="text-xs text-slate-400 max-w-xs leading-relaxed uppercase tracking-wider mb-6">
-                Unable to sync with Cadmium main network. Connection timed out.
+              <p class="text-xs text-slate-400 max-w-xs leading-relaxed uppercase tracking-wider mb-2">
+                Unable to sync with Cadmium main network.
+              </p>
+              <p class="text-[10px] text-brand-pink/80 uppercase tracking-widest mb-6 font-mono">
+                Code: ${err.message || 'Connection pipeline offline'}
               </p>
               <button onclick="window.location.reload()" class="py-2 px-5 bg-brand-glow hover:bg-brand-glow/80 text-[10px] uppercase font-tech tracking-wider rounded font-bold transition-all text-white">
                 Retry Connection
